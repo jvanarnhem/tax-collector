@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tax Collector Game</title>
+
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: #f5f5f5;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    #gameContainer {
+        width: 700px;
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    h2 {
+        text-align: center;
+        margin-top: 0;
+    }
+
+    /* Setup Screen */
+    #setupScreen {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    #setupScreen input {
+        width: 80px;
+        font-size: 18px;
+        padding: 4px;
+        margin-top: 10px;
+        text-align: center;
+    }
+
+    #startBtn, #restartBtn {
+        padding: 8px 16px;
+        margin-top: 15px;
+        background: #4c8bf5;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    #startBtn:hover, #restartBtn:hover {
+        background: #2d6ee8;
+    }
+
+    /* Paycheck cards */
+    .paycheck {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 55px;
+        height: 35px;
+        margin: 5px;
+        border-radius: 8px;
+        background: #e8f1ff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        cursor: pointer;
+        transition: transform 0.15s, background 0.15s;
+    }
+
+    .paycheck:hover {
+        transform: scale(1.1);
+    }
+
+    .takenPlayer {
+        background: #c8f7c5; /* soft green */
+    }
+
+    .takenTax {
+        background: #ffd7c2; /* soft orange */
+    }
+
+    .flashRed {
+        background: #ffb3b3 !important;
+    }
+
+    #pool, #playerArea, #taxArea {
+        min-height: 60px;
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        background: #fafafa;
+    }
+
+    #areas {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .areaBox {
+        width: 48%;
+    }
+
+    #history {
+        background: #fff8e6;
+        border-left: 4px solid #f5c146;
+        padding: 10px;
+        margin-top: 15px;
+        border-radius: 6px;
+        max-height: 250px;
+        overflow-y: auto;
+        font-size: 14px;
+    }
+
+    #message {
+        color: red;
+        font-weight: bold;
+        height: 20px;
+        text-align: center;
+        margin-top: 5px;
+    }
+</style>
+
+</head>
+<body>
+
+<div id="gameContainer">
+
+    <h2>Tax Collector Game</h2>
+
+    <!-- Setup Screen -->
+    <div id="setupScreen">
+        <p>Choose the highest paycheck (10–25):</p>
+        <input id="maxInput" type="number" value="12" min="10" max="25">
+        <br>
+        <button id="startBtn">Start Game</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="gameScreen" style="display:none;">
+
+        <h3>Available Paychecks</h3>
+        <div id="pool"></div>
+
+        <div id="message"></div>
+
+        <div id="areas">
+            <div class="areaBox">
+                <h3>Player</h3>
+                <div id="playerArea"></div>
+                <p><strong>Total: $<span id="playerTotal">0</span></strong></p>
+            </div>
+
+            <div class="areaBox">
+                <h3>Tax Collector</h3>
+                <div id="taxArea"></div>
+                <p><strong>Total: $<span id="taxTotal">0</span></strong></p>
+            </div>
+        </div>
+
+        <button id="restartBtn">Restart</button>
+
+        <h3>History</h3>
+        <div id="history"></div>
+
+    </div>
+
+</div>
+
+<script>
+let maxVal;
+let pool = [];
+let player = [];
+let tax = [];
+let historyLog = [];
+let gameOver = false;
+
+const poolDiv = document.getElementById("pool");
+const playerDiv = document.getElementById("playerArea");
+const taxDiv = document.getElementById("taxArea");
+const playerTotalSpan = document.getElementById("playerTotal");
+const taxTotalSpan = document.getElementById("taxTotal");
+const historyDiv = document.getElementById("history");
+const messageDiv = document.getElementById("message");
+
+// Start Game
+document.getElementById("startBtn").onclick = () => {
+    maxVal = Number(document.getElementById("maxInput").value);
+    if (maxVal < 10 || maxVal > 25) return alert("Choose a value between 10 and 25.");
+
+    document.getElementById("setupScreen").style.display = "none";
+    document.getElementById("gameScreen").style.display = "block";
+
+    startGame();
+};
+
+// Restart Game
+document.getElementById("restartBtn").onclick = () => {
+    location.reload();
+};
+
+function startGame() {
+    pool = [];
+    player = [];
+    tax = [];
+    historyLog = [];
+    gameOver = false;
+    messageDiv.textContent = "";
+
+    for (let i = 1; i <= maxVal; i++) {
+        pool.push(i);
+    }
+
+    updateDisplay();
+}
+
+function updateDisplay() {
+    poolDiv.innerHTML = "";
+    playerDiv.innerHTML = "";
+    taxDiv.innerHTML = "";
+    historyDiv.innerHTML = historyLog.join("<br>");
+
+    pool.forEach(val => {
+        let card = createCard(val);
+        poolDiv.appendChild(card);
+    });
+
+    player.forEach(val => {
+        let card = createTakenCard(val, "player");
+        playerDiv.appendChild(card);
+    });
+
+    tax.forEach(val => {
+        let card = createTakenCard(val, "tax");
+        taxDiv.appendChild(card);
+    });
+
+    playerTotalSpan.textContent = sum(player);
+    taxTotalSpan.textContent = sum(tax);
+}
+
+function createCard(value) {
+    let div = document.createElement("div");
+    div.className = "paycheck";
+    div.textContent = "$" + value;
+
+    div.onclick = () => {
+        if (gameOver) return;
+
+        let legal = checkLegal(value);
+        if (!legal) {
+            showIllegal(div);
+            return;
+        }
+
+        playTurn(value);
+    };
+
+    return div;
+}
+
+function createTakenCard(value, who) {
+    let div = document.createElement("div");
+    div.className = "paycheck " + (who === "player" ? "takenPlayer" : "takenTax");
+    div.textContent = "$" + value;
+    return div;
+}
+
+function checkLegal(chosen) {
+    let factors = pool.filter(x => x !== chosen && chosen % x === 0);
+    return factors.length > 0;
+}
+
+function showIllegal(card) {
+    card.classList.add("flashRed");
+    messageDiv.textContent = "Illegal move: The tax collector must receive at least one paycheck.";
+
+    setTimeout(() => card.classList.remove("flashRed"), 300);
+}
+
+function playTurn(chosen) {
+    messageDiv.textContent = "";
+
+    // Tax collector gets factors
+    let factors = pool.filter(x => x !== chosen && chosen % x === 0);
+
+    // Player gets chosen number
+    player.push(chosen);
+
+    // Remove chosen and factors from pool
+    pool = pool.filter(x => x !== chosen && !factors.includes(x));
+
+    // Add factors to tax collector
+    tax.push(...factors);
+
+    // Record history
+    historyLog.push(`Player took $${chosen} — Tax Collector took ${factors.length ? "$" + factors.join(", $") : "nothing"}`);
+
+    // Check if any legal moves remain
+    checkEnd();
+
+    updateDisplay();
+}
+
+function checkEnd() {
+    let stillLegal = pool.some(x => checkLegal(x));
+
+    if (!stillLegal) {
+        gameOver = true;
+
+        // Tax collector gets remaining paychecks
+        tax.push(...pool);
+        if (pool.length > 0)
+            historyLog.push(`Game over — Tax Collector receives remaining paychecks: $${pool.join(", $")}`);
+
+        pool = [];
+
+        updateDisplay();
+    }
+}
+
+function sum(arr) {
+    return arr.reduce((a, b) => a + b, 0);
+}
+</script>
+
+</body>
+</html>
