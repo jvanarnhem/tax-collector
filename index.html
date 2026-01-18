@@ -122,6 +122,14 @@
         text-align: center;
         margin-top: 5px;
     }
+
+    #endMessage {
+        text-align:center;
+        font-size:18px;
+        font-weight:bold;
+        margin:10px;
+        min-height: 24px;
+    }
 </style>
 
 </head>
@@ -161,6 +169,8 @@
             </div>
         </div>
 
+        <div id="endMessage"></div>
+
         <button id="restartBtn">Restart</button>
 
         <h3>History</h3>
@@ -185,6 +195,7 @@ const playerTotalSpan = document.getElementById("playerTotal");
 const taxTotalSpan = document.getElementById("taxTotal");
 const historyDiv = document.getElementById("history");
 const messageDiv = document.getElementById("message");
+const endMessage = document.getElementById("endMessage");
 
 // Start Game
 document.getElementById("startBtn").onclick = () => {
@@ -209,6 +220,7 @@ function startGame() {
     historyLog = [];
     gameOver = false;
     messageDiv.textContent = "";
+    endMessage.textContent = "";
 
     for (let i = 1; i <= maxVal; i++) {
         pool.push(i);
@@ -319,6 +331,19 @@ function checkEnd() {
         pool = [];
 
         updateDisplay();
+
+        // NEW: Determine winner
+        let playerSum = sum(player);
+        let taxSum = sum(tax);
+        let msg = "";
+
+        if (playerSum > taxSum) {
+            msg = "🎉 You beat the tax collector!";
+        } else {
+            msg = "😕 Sorry, the tax collector wins.";
+        }
+
+        endMessage.textContent = msg;
     }
 }
 
